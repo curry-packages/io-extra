@@ -11,18 +11,16 @@ module System.IOExts
     execCmd, evalCmd, connectToCommand
     -- file access
   , readCompleteFile,updateFile, exclusiveIO
-    -- IORef
-  , IORef, newIORef, readIORef, writeIORef, modifyIORef
   ) where
 
-#ifdef __PAKCS__
-import Data.Char        (isAlphaNum)
-import System.Directory (removeFile)
+import Control.Monad    ( unless )
+#ifdef __KICS2__
+#else
+import Data.Char        ( isAlphaNum )
+import System.Directory ( removeFile )
 #endif
 import System.IO
 import System.Process
-import Data.IORef
-import Control.Monad
 
 --- Executes a command with a new default shell process.
 --- The standard I/O streams of the new process (stdin,stdout,stderr)
@@ -46,7 +44,12 @@ prim_execCmd external
 --- @param input - the input to be written to the command's stdin
 --- @return the exit code and the contents written to stdout and stderr
 evalCmd :: String -> [String] -> String -> IO (Int, String, String)
-#ifdef __PAKCS__
+#ifdef __KICS2__
+evalCmd cmd args input = ((prim_evalCmd $## cmd) $## args) $## input
+
+prim_evalCmd :: String -> [String] -> String -> IO (Int, String, String)
+prim_evalCmd external
+#else
 evalCmd cmd args input = do
   pid <- getPID
   let tmpfile = "/tmp/PAKCS_evalCMD"++show pid
@@ -81,11 +84,6 @@ evalCmd cmd args input = do
      else do c <- hGetChar h
              cs <- hGetEOF h
              return (c:cs)
-#else
-evalCmd cmd args input = ((prim_evalCmd $## cmd) $## args) $## input
-
-prim_evalCmd :: String -> [String] -> String -> IO (Int, String, String)
-prim_evalCmd external
 #endif
 
 
